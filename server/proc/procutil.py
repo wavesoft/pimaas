@@ -20,15 +20,23 @@ class ProcessManager:
     self.openStdin = False
 
   def send(self, stdin):
-    pass
+    if not self.openStdin:
+      return
+
+    self.t_proc.stdin.write(stdin)
+    self.t_proc.stdin.flush()
 
   def start(self, cmdline, shell=False):
     self.postbox.send('progress', 'init')
 
     self.staredOutput = False
 
+    stdin = None
+    if self.openStdin:
+      stdin = PIPE
+
     try:
-      self.t_proc = Popen(cmdline, stdout=PIPE, stderr=PIPE,
+      self.t_proc = Popen(cmdline, stdout=PIPE, stderr=PIPE, stdin=stdin,
         bufsize=1, preexec_fn=os.setsid, shell=shell)
     except Exception:
       self.postbox.send('progress', 'start')
@@ -87,6 +95,11 @@ class ProcessManager:
     self.t_proc.stdout.close()
     self.t_proc.stderr.close()
 
+    # Close STDIN
+    if self.openStdin:
+      self.t_proc.stdin.flush()
+      self.t_proc.stdin.close()
+
     # Trigger completion according to exit code
     ret = self.t_proc.wait()
     if ret == 0:
@@ -97,10 +110,18 @@ class ProcessManager:
   def kill(self):
     if not self.t_proc:
       return
+
     # Signal the pipe to exit the select() loop
-    os.write(self.signal_pipe, '\n')
+    try:
+      os.write(self.signal_pipe, '\n')
+    except Exception:
+      pass
+
     # Kill process group
-    os.killpg(os.getpgid(self.t_proc.pid), signal.SIGTERM)
+    try:
+      os.killpg(os.getpgid(self.t_proc.pid), signal.SIGTERM)
+    except Exception:
+      pass
 
   def wait(self):
     if not self.t_proc:

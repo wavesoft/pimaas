@@ -79,6 +79,21 @@ def discover():
     'version': '0.1.0'
   })
 
+@app.route("/control")
+def control():
+  keys = request.args.get('keys', None)
+  if keys is None:
+    return json.dumps({'status': 'missing-keys'})
+
+  try:
+    expr = ''.join(map(lambda x: chr(int(x)), keys.split(',')))
+  except Exception as e:
+    return json.dumps({'status': 'invalid-format'})
+
+  video.control(expr)
+
+  return json.dumps({'status': 'ok'})
+
 @app.route("/exit")
 def exit():
   display.cleanup()

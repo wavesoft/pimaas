@@ -81,6 +81,9 @@ class VideoSession:
     if os.path.exists(self.fifoFile):
       os.unlink(self.fifoFile)
 
+  def control(self, stdin):
+    self.proc_player.send(stdin)
+
 class VideoPlayer:
   def __init__(self, messenger):
     self.messenger = messenger
@@ -129,6 +132,10 @@ class VideoPlayer:
   def stop(self):
     if self.session and not self.session.killing:
       self.session.kill()
+
+  def control(self, stdin):
+    if self.session:
+      self.session.control(stdin)
 
   def getStatus(self):
     ans = {
