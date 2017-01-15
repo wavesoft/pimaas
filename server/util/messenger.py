@@ -65,7 +65,7 @@ class Messenger:
     """
     while True:
       message = self.queue.get()
-      if not sefl.isActive:
+      if not self.isActive:
         return
       self.handle(message[0], message[1], message[2])
 
